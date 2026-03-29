@@ -3,12 +3,8 @@
  * 使用 Web Audio API 生成游戏音效和背景音乐
  */
 
-// 音频上下文（延迟初始化，需要用户交互后才能创建）
 let audioCtx = null;
 
-/**
- * 确保音频上下文已初始化
- */
 function ensureContext() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -19,9 +15,6 @@ function ensureContext() {
     return audioCtx;
 }
 
-/**
- * 播放吃食物音效 - 清脆的上升音
- */
 export function playEatSound() {
     try {
         const ctx = ensureContext();
@@ -41,19 +34,13 @@ export function playEatSound() {
 
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.2);
-    } catch (e) {
-        // 静默处理
-    }
+    } catch (e) {}
 }
 
-/**
- * 播放游戏结束音效 - 下降的悲伤音
- */
 export function playGameOverSound() {
     try {
         const ctx = ensureContext();
 
-        // 第一个音
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
         osc1.connect(gain1);
@@ -66,7 +53,6 @@ export function playGameOverSound() {
         osc1.start(ctx.currentTime);
         osc1.stop(ctx.currentTime + 0.4);
 
-        // 第二个音（延迟）
         const osc2 = ctx.createOscillator();
         const gain2 = ctx.createGain();
         osc2.connect(gain2);
@@ -78,14 +64,9 @@ export function playGameOverSound() {
         gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
         osc2.start(ctx.currentTime + 0.2);
         osc2.stop(ctx.currentTime + 0.7);
-    } catch (e) {
-        // 静默处理
-    }
+    } catch (e) {}
 }
 
-/**
- * 播放按钮点击音效
- */
 export function playClickSound() {
     try {
         const ctx = ensureContext();
@@ -104,14 +85,9 @@ export function playClickSound() {
 
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.1);
-    } catch (e) {
-        // 静默处理
-    }
+    } catch (e) {}
 }
 
-/**
- * 播放转向音效
- */
 export function playTurnSound() {
     try {
         const ctx = ensureContext();
@@ -129,9 +105,49 @@ export function playTurnSound() {
 
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.05);
-    } catch (e) {
-        // 静默处理
-    }
+    } catch (e) {}
+}
+
+export function playBombSound() {
+    try {
+        const ctx = ensureContext();
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(150, ctx.currentTime);
+        osc1.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.3);
+        gain1.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc1.start(ctx.currentTime);
+        osc1.stop(ctx.currentTime + 0.35);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(80, ctx.currentTime);
+        osc2.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.2);
+        gain2.gain.setValueAtTime(0.12, ctx.currentTime + 0.05);
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc2.start(ctx.currentTime + 0.05);
+        osc2.stop(ctx.currentTime + 0.3);
+
+        const osc3 = ctx.createOscillator();
+        const gain3 = ctx.createGain();
+        osc3.connect(gain3);
+        gain3.connect(ctx.destination);
+        osc3.type = 'triangle';
+        osc3.frequency.setValueAtTime(600, ctx.currentTime);
+        osc3.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
+        gain3.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc3.start(ctx.currentTime);
+        osc3.stop(ctx.currentTime + 0.2);
+    } catch (e) {}
 }
 
 /* ========== 背景音乐模块 ========== */
@@ -139,7 +155,6 @@ export function playTurnSound() {
 let bgmInterval = null;
 let bgmPlaying = false;
 
-// 简单的旋律音符序列（频率）
 const melodyNotes = [
     523, 587, 659, 698, 784, 698, 659, 587,
     523, 440, 494, 523, 587, 523, 494, 440,
@@ -169,14 +184,9 @@ function playBgmNote() {
         osc.stop(ctx.currentTime + 0.28);
 
         noteIndex++;
-    } catch (e) {
-        // 静默处理
-    }
+    } catch (e) {}
 }
 
-/**
- * 开始播放背景音乐
- */
 export function startBgm() {
     if (bgmPlaying) return;
     bgmPlaying = true;
@@ -184,9 +194,6 @@ export function startBgm() {
     bgmInterval = setInterval(playBgmNote, 300);
 }
 
-/**
- * 停止背景音乐
- */
 export function stopBgm() {
     bgmPlaying = false;
     if (bgmInterval) {
@@ -195,9 +202,6 @@ export function stopBgm() {
     }
 }
 
-/**
- * 背景音乐是否正在播放
- */
 export function isBgmPlaying() {
     return bgmPlaying;
 }
