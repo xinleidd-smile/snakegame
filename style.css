@@ -7,6 +7,9 @@ body {
     color: #fff;
     margin: 0;
     padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* 背景装饰粒子 */
@@ -123,6 +126,7 @@ body {
     backdrop-filter: blur(6px);
     z-index: 20;
     transition: opacity 0.3s ease;
+    overflow-y: auto;
 }
 
 .overlay.hidden {
@@ -131,27 +135,27 @@ body {
 }
 
 .overlay-content h2 {
-    font-size: 2rem;
+    font-size: 1.6rem;
     font-weight: 900;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .overlay-content p {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 .overlay-content .final-score {
-    font-size: 3rem;
+    font-size: 2.4rem;
     font-weight: 900;
     color: #ffd200;
-    margin: 12px 0;
+    margin: 8px 0;
     text-shadow: 0 0 20px rgba(255, 210, 0, 0.5);
 }
 
 .overlay-content .start-hint {
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #43e97b;
     animation: pulse 1.5s ease-in-out infinite;
 }
@@ -163,15 +167,15 @@ body {
 
 .overlay-btn {
     display: inline-block;
-    padding: 12px 32px;
+    padding: 10px 28px;
     border-radius: 50px;
     border: none;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: 'Noto Sans SC', sans-serif;
-    margin-top: 8px;
+    margin-top: 6px;
 }
 
 .overlay-btn.primary {
@@ -361,6 +365,62 @@ body {
     .help-text {
         display: none;
     }
+    .overlay-content h2 {
+        font-size: 1.3rem;
+    }
+    .overlay-content .final-score {
+        font-size: 2rem;
+        margin: 4px 0;
+    }
+    .overlay-content p {
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+    }
+    .overlay-btn {
+        padding: 8px 22px;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-height: 700px) {
+    .title-area {
+        margin-bottom: 4px !important;
+    }
+    .title-area h1 {
+        font-size: 1.6rem !important;
+    }
+    .title-area .subtitle-text {
+        display: none;
+    }
+    .info-bar {
+        padding: 6px 12px !important;
+        margin-bottom: 6px !important;
+    }
+    .difficulty-bar {
+        padding: 6px 10px;
+        margin-top: 6px !important;
+    }
+    .control-bar {
+        margin-top: 6px !important;
+    }
+    .touch-controls {
+        margin-top: 6px !important;
+    }
+    .overlay-content h2 {
+        font-size: 1.2rem;
+    }
+    .overlay-content .final-score {
+        font-size: 1.8rem;
+        margin: 4px 0;
+    }
+    .overlay-content p {
+        font-size: 0.75rem;
+        margin-bottom: 6px;
+    }
+    .overlay-btn {
+        padding: 8px 20px;
+        font-size: 0.85rem;
+    }
 }
 
 /* ========== 网格闪烁动画 ========== */
@@ -372,4 +432,26 @@ body {
 /* ========== 蛇身发光 ========== */
 .snake-glow {
     filter: drop-shadow(0 0 6px rgba(67, 233, 123, 0.6));
+}
+
+/* ========== 炸弹震动效果 ========== */
+@keyframes canvasShake {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-4px, -2px); }
+    20% { transform: translate(4px, 2px); }
+    30% { transform: translate(-3px, 3px); }
+    40% { transform: translate(3px, -3px); }
+    50% { transform: translate(-2px, 2px); }
+    60% { transform: translate(2px, -1px); }
+    70% { transform: translate(-1px, 1px); }
+    80% { transform: translate(1px, -1px); }
+    90% { transform: translate(-1px, 0); }
+}
+
+.canvas-wrapper.shake {
+    animation: canvasShake 0.3s ease-out;
+    box-shadow:
+        0 0 0 3px rgba(255, 71, 87, 0.5),
+        0 0 40px rgba(255, 71, 87, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.4) !important;
 }
