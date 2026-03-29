@@ -9,6 +9,7 @@ import {
     playGameOverSound,
     playClickSound,
     playTurnSound,
+    playBombSound,
     startBgm,
     stopBgm,
     isBgmPlaying
@@ -37,9 +38,8 @@ let musicEnabled = false;
 const game = new SnakeGame(canvas, {
     onScoreChange(score) {
         scoreEl.textContent = score;
-        // 分数跳动动画
         scoreEl.classList.remove('bump');
-        void scoreEl.offsetWidth; // 强制重排
+        void scoreEl.offsetWidth;
         scoreEl.classList.add('bump');
     },
     onBestScoreChange(best) {
@@ -53,12 +53,17 @@ const game = new SnakeGame(canvas, {
     onEat(food, foodType) {
         if (soundEnabled) playEatSound();
     },
+    onBomb(penalty) {
+        if (soundEnabled) playBombSound();
+        const wrapper = document.getElementById('canvas-wrapper');
+        wrapper.classList.add('shake');
+        setTimeout(() => wrapper.classList.remove('shake'), 300);
+    },
     onStateChange(state) {
         updateUI(state);
     }
 });
 
-// 初始化最高分显示
 bestScoreEl.textContent = game.bestScore;
 
 // ========== 覆盖层管理 ==========
@@ -90,7 +95,7 @@ function showGameOverOverlay(finalScore) {
     const isNewBest = finalScore >= game.bestScore && finalScore > 0;
     overlay.classList.remove('hidden');
     overlayContent.innerHTML = `
-        <div style="font-size:3rem; margin-bottom:8px;">💀</div>
+        <div style="font-size:2.5rem; margin-bottom:6px;">💀</div>
         <h2 style="color:#ff4757;">游戏结束</h2>
         ${isNewBest ? '<p style="color:#ffd200; font-weight:bold;">🎉 新纪录！</p>' : ''}
         <div class="final-score">${finalScore}</div>
@@ -101,6 +106,11 @@ function showGameOverOverlay(finalScore) {
         if (soundEnabled) playClickSound();
         startGame();
     });
+
+    const canvasWrapper = document.getElementById('canvas-wrapper');
+    if (canvasWrapper) {
+        canvasWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
 function hideOverlay() {
@@ -122,7 +132,6 @@ function updateUI(state) {
         btnStart.classList.remove('hidden');
         btnStart.textContent = '🔄 重新开始';
     } else {
-        // idle
         btnStart.classList.remove('hidden');
         btnPause.classList.add('hidden');
         btnStart.textContent = '▶ 开始游戏';
@@ -136,20 +145,16 @@ function startGame() {
 }
 
 // ========== 事件绑定 ==========
-
-// 开始按钮
 btnStart.addEventListener('click', () => {
     if (soundEnabled) playClickSound();
     startGame();
 });
 
-// 暂停按钮
 btnPause.addEventListener('click', () => {
     if (soundEnabled) playClickSound();
     game.togglePause();
 });
 
-// 音效按钮
 btnSound.addEventListener('click', () => {
     soundEnabled = !soundEnabled;
     btnSound.textContent = soundEnabled ? '🔊 音效' : '🔇 音效';
@@ -157,7 +162,6 @@ btnSound.addEventListener('click', () => {
     if (soundEnabled) playClickSound();
 });
 
-// 音乐按钮
 btnMusic.addEventListener('click', () => {
     musicEnabled = !musicEnabled;
     btnMusic.textContent = musicEnabled ? '🎵 音乐' : '🎵 静音';
@@ -171,7 +175,6 @@ btnMusic.addEventListener('click', () => {
     if (soundEnabled) playClickSound();
 });
 
-// 难度选择
 diffBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         if (soundEnabled) playClickSound();
@@ -189,18 +192,13 @@ const keyDirMap = {
     ArrowDown: DIR.DOWN,
     ArrowLeft: DIR.LEFT,
     ArrowRight: DIR.RIGHT,
-    w: DIR.UP,
-    W: DIR.UP,
-    s: DIR.DOWN,
-    S: DIR.DOWN,
-    a: DIR.LEFT,
-    A: DIR.LEFT,
-    d: DIR.RIGHT,
-    D: DIR.RIGHT
+    w: DIR.UP, W: DIR.UP,
+    s: DIR.DOWN, S: DIR.DOWN,
+    a: DIR.LEFT, A: DIR.LEFT,
+    d: DIR.RIGHT, D: DIR.RIGHT
 };
 
 document.addEventListener('keydown', (e) => {
-    // 方向键
     const dir = keyDirMap[e.key];
     if (dir) {
         e.preventDefault();
@@ -211,7 +209,6 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
-    // 空格键
     if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
         if (game.state === 'idle' || game.state === 'gameover') {
@@ -264,7 +261,6 @@ canvas.addEventListener('touchend', (e) => {
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
-    // 最小滑动距离
     if (Math.max(absDx, absDy) < 20) return;
 
     let dir;
@@ -314,8 +310,6 @@ function init() {
     createBgParticles();
     showStartOverlay();
     game.resize();
-
-    // 绘制初始空画布
     game.render();
 }
 
