@@ -1,0 +1,375 @@
+/* ========== 全局基础 ========== */
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+/* 背景装饰粒子 */
+.bg-particle {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.15;
+    animation: floatUp linear infinite;
+    pointer-events: none;
+}
+
+@keyframes floatUp {
+    0% { transform: translateY(0) scale(1); opacity: 0.15; }
+    50% { opacity: 0.25; }
+    100% { transform: translateY(-110vh) scale(0.5); opacity: 0; }
+}
+
+/* ========== 标题 ========== */
+.game-title {
+    background: linear-gradient(90deg, #f7971e, #ffd200, #43e97b, #38f9d7);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease infinite;
+    text-shadow: none;
+    filter: drop-shadow(0 2px 8px rgba(67, 233, 123, 0.3));
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.subtitle-text {
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 4px;
+}
+
+/* ========== 信息栏 ========== */
+.info-bar {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 10px 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.score-icon, .best-icon, .level-icon {
+    font-size: 1.3rem;
+}
+
+.score-label, .best-label, .level-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.score-value {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #ffd200;
+    min-width: 40px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.score-value.bump {
+    animation: scoreBump 0.3s ease;
+}
+
+@keyframes scoreBump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+}
+
+.best-value {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #43e97b;
+    min-width: 40px;
+    text-align: center;
+}
+
+.level-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #38f9d7;
+}
+
+/* ========== 画布区域 ========== */
+.canvas-wrapper {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 3px rgba(67, 233, 123, 0.3),
+        0 0 40px rgba(67, 233, 123, 0.15),
+        0 20px 60px rgba(0, 0, 0, 0.4);
+    background: #0a0a1a;
+    position: relative;
+}
+
+#game-canvas {
+    display: block;
+    image-rendering: pixelated;
+}
+
+/* ========== 覆盖层 ========== */
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 10, 26, 0.85);
+    backdrop-filter: blur(6px);
+    z-index: 20;
+    transition: opacity 0.3s ease;
+}
+
+.overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.overlay-content h2 {
+    font-size: 2rem;
+    font-weight: 900;
+    margin-bottom: 8px;
+}
+
+.overlay-content p {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 16px;
+}
+
+.overlay-content .final-score {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #ffd200;
+    margin: 12px 0;
+    text-shadow: 0 0 20px rgba(255, 210, 0, 0.5);
+}
+
+.overlay-content .start-hint {
+    font-size: 1.1rem;
+    color: #43e97b;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.overlay-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    border-radius: 50px;
+    border: none;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Noto Sans SC', sans-serif;
+    margin-top: 8px;
+}
+
+.overlay-btn.primary {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    color: #0a0a1a;
+    box-shadow: 0 4px 20px rgba(67, 233, 123, 0.4);
+}
+
+.overlay-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(67, 233, 123, 0.6);
+}
+
+/* ========== 难度按钮 ========== */
+.difficulty-bar {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 10px 16px;
+}
+
+.diff-label {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.diff-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Noto Sans SC', sans-serif;
+}
+
+.diff-btn:hover {
+    border-color: rgba(67, 233, 123, 0.4);
+    color: #fff;
+}
+
+.diff-btn.active {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    color: #0a0a1a;
+    border-color: transparent;
+    box-shadow: 0 2px 12px rgba(67, 233, 123, 0.3);
+}
+
+/* ========== 控制按钮 ========== */
+.ctrl-btn {
+    padding: 8px 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Noto Sans SC', sans-serif;
+}
+
+.ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.start-btn {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    color: #0a0a1a;
+    border-color: transparent;
+    box-shadow: 0 2px 12px rgba(67, 233, 123, 0.3);
+}
+
+.start-btn:hover {
+    box-shadow: 0 4px 20px rgba(67, 233, 123, 0.5);
+    transform: translateY(-1px);
+}
+
+.sound-btn.muted, .music-btn.muted {
+    opacity: 0.4;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ========== 虚拟方向键 ========== */
+.touch-controls {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .touch-controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+}
+
+@media (pointer: coarse) {
+    .touch-controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+}
+
+.dpad-row {
+    display: flex;
+    gap: 4px;
+}
+
+.dpad-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    border: 2px solid rgba(67, 233, 123, 0.3);
+    background: rgba(67, 233, 123, 0.1);
+    color: #43e97b;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.dpad-btn:active {
+    background: rgba(67, 233, 123, 0.3);
+    transform: scale(0.92);
+}
+
+.dpad-center {
+    background: transparent;
+    border-color: transparent;
+    cursor: default;
+}
+
+/* ========== 帮助文字 ========== */
+.help-text p {
+    color: rgba(255, 255, 255, 0.3);
+    margin: 2px 0;
+}
+
+/* ========== 吃食物特效 ========== */
+.eat-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: eatBurst 0.5s ease-out forwards;
+}
+
+@keyframes eatBurst {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+    .game-title {
+        font-size: 1.8rem;
+    }
+    .info-bar {
+        padding: 8px 12px;
+    }
+    .score-value, .best-value {
+        font-size: 1.1rem;
+    }
+    .difficulty-bar {
+        padding: 8px 10px;
+    }
+    .diff-btn {
+        padding: 5px 10px;
+        font-size: 0.75rem;
+    }
+    .ctrl-btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+    .help-text {
+        display: none;
+    }
+}
+
+/* ========== 网格闪烁动画 ========== */
+@keyframes gridPulse {
+    0%, 100% { opacity: 0.03; }
+    50% { opacity: 0.06; }
+}
+
+/* ========== 蛇身发光 ========== */
+.snake-glow {
+    filter: drop-shadow(0 0 6px rgba(67, 233, 123, 0.6));
+}

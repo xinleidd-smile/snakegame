@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🐍 贪吃蛇大作战</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center overflow-hidden select-none">
+    <!-- 背景装饰 -->
+    <div id="bg-decor" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- 主容器 -->
+    <div id="app" class="relative z-10 flex flex-col items-center w-full max-w-2xl px-4 py-6">
+        <!-- 标题区域 -->
+        <div class="title-area mb-4 text-center">
+            <h1 class="game-title text-4xl md:text-5xl font-black tracking-wider">
+                🐍 贪吃蛇大作战
+            </h1>
+            <p class="text-sm md:text-base mt-1 subtitle-text">经典街机 · 卡通风格</p>
+        </div>
+
+        <!-- 信息栏 -->
+        <div class="info-bar w-full flex items-center justify-between mb-3 px-2">
+            <div class="score-box flex items-center gap-2">
+                <span class="score-icon">⭐</span>
+                <span class="score-label">分数</span>
+                <span id="score" class="score-value">0</span>
+            </div>
+            <div class="best-box flex items-center gap-2">
+                <span class="best-icon">🏆</span>
+                <span class="best-label">最高</span>
+                <span id="best-score" class="best-value">0</span>
+            </div>
+            <div class="level-box flex items-center gap-2">
+                <span class="level-icon">🎮</span>
+                <span class="level-label">难度</span>
+                <span id="current-level" class="level-value">简单</span>
+            </div>
+        </div>
+
+        <!-- 游戏画布区域 -->
+        <div id="canvas-wrapper" class="canvas-wrapper relative">
+            <canvas id="game-canvas"></canvas>
+            <!-- 开始/暂停/结束 覆盖层 -->
+            <div id="overlay" class="overlay flex flex-col items-center justify-center">
+                <div id="overlay-content" class="overlay-content text-center">
+                    <!-- 动态内容 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 难度选择 -->
+        <div class="difficulty-bar w-full flex items-center justify-center gap-3 mt-4 flex-wrap">
+            <span class="diff-label text-sm font-bold">难度选择：</span>
+            <button class="diff-btn active" data-speed="easy">🌱 简单</button>
+            <button class="diff-btn" data-speed="medium">🔥 中等</button>
+            <button class="diff-btn" data-speed="hard">💀 困难</button>
+            <button class="diff-btn" data-speed="insane">👹 地狱</button>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="control-bar w-full flex items-center justify-center gap-4 mt-3">
+            <button id="btn-start" class="ctrl-btn start-btn">▶ 开始游戏</button>
+            <button id="btn-pause" class="ctrl-btn pause-btn hidden">⏸ 暂停</button>
+            <button id="btn-sound" class="ctrl-btn sound-btn">🔊 音效</button>
+            <button id="btn-music" class="ctrl-btn music-btn">🎵 音乐</button>
+        </div>
+
+        <!-- 移动端虚拟方向键 -->
+        <div id="touch-controls" class="touch-controls mt-4">
+            <div class="dpad-row">
+                <button class="dpad-btn" data-dir="up">▲</button>
+            </div>
+            <div class="dpad-row">
+                <button class="dpad-btn" data-dir="left">◀</button>
+                <button class="dpad-btn dpad-center" disabled></button>
+                <button class="dpad-btn" data-dir="right">▶</button>
+            </div>
+            <div class="dpad-row">
+                <button class="dpad-btn" data-dir="down">▼</button>
+            </div>
+        </div>
+
+        <!-- 操作说明 -->
+        <div class="help-text mt-4 text-center text-xs md:text-sm">
+            <p>⌨️ 方向键 / WASD 控制移动 · 空格键暂停</p>
+            <p>📱 移动端支持滑动手势或虚拟方向键</p>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="fixed bottom-2 w-full text-center text-xs z-10" style="color:#aaa;">
+        <p>由 <a href="https://with.woa.com/" style="color: #8A2BE2;" target="_blank">With</a> 通过自然语言生成</p>
+    </footer>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
