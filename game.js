@@ -1,5 +1,6 @@
 /**
  * game.js - 贪吃蛇游戏核心逻辑
+ * 支持水果食物 + 炸弹障碍
  */
 
 // 方向常量
@@ -25,76 +26,89 @@ const SPEED_LABEL = {
     insane: '地狱'
 };
 
-// 食物类型及其分值和颜色
+// 水果食物类型及其分值和颜色
 const FOOD_TYPES = [
-    { emoji: '🍎', points: 10, color: '#ff4757' },
-    { emoji: '🍊', points: 15, color: '#ffa502' },
-    { emoji: '🍇', points: 20, color: '#8e44ad' },
-    { emoji: '🍓', points: 25, color: '#e84393' },
-    { emoji: '⭐', points: 50, color: '#ffd200' }
+    { emoji: '🍎', name: '苹果', points: 10, color: '#ff4757' },
+    { emoji: '🍊', name: '橙子', points: 15, color: '#ffa502' },
+    { emoji: '🍇', name: '葡萄', points: 20, color: '#8e44ad' },
+    { emoji: '🍓', name: '草莓', points: 25, color: '#e84393' },
+    { emoji: '🍑', name: '蜜桃', points: 30, color: '#fd79a8' },
+    { emoji: '🍉', name: '西瓜', points: 35, color: '#00b894' },
+    { emoji: '🍒', name: '樱桃', points: 40, color: '#d63031' },
+    { emoji: '🥝', name: '猕猴桃', points: 45, color: '#a3cb38' },
+    { emoji: '🍌', name: '香蕉', points: 50, color: '#fdcb6e' },
+    { emoji: '🌟', name: '幸运星', points: 80, color: '#ffd200' }
 ];
+
+// 炸弹配置
+const BOMB_CONFIG = {
+    emoji: '💣',
+    penalty: 20,
+    color: '#ff4757',
+    warningColor: '#ff6b6b',
+    countByDifficulty: {
+        easy: 2,
+        medium: 3,
+        hard: 5,
+        insane: 7
+    },
+    refreshInterval: 30
+};
 
 export class SnakeGame {
     constructor(canvas, options = {}) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        // 网格配置
-        this.gridSize = 20; // 每个格子的像素大小
+        this.gridSize = 20;
         this.cols = 0;
         this.rows = 0;
 
-        // 游戏状态
-        this.state = 'idle'; // idle | playing | paused | gameover
+        this.state = 'idle';
         this.score = 0;
         this.bestScore = parseInt(localStorage.getItem('snake_best') || '0');
         this.difficulty = 'easy';
 
-        // 蛇
         this.snake = [];
         this.direction = DIR.RIGHT;
         this.nextDirection = DIR.RIGHT;
         this.growing = 0;
 
-        // 食物
         this.food = null;
         this.foodType = null;
         this.foodAnimPhase = 0;
 
-        // 特效粒子
+        this.bombs = [];
+        this.bombAnimPhase = 0;
+        this.stepCount = 0;
+
         this.particles = [];
 
-        // 游戏循环
         this.lastTime = 0;
         this.accumulator = 0;
         this.animFrameId = null;
 
-        // 回调
         this.onScoreChange = options.onScoreChange || (() => {});
         this.onBestScoreChange = options.onBestScoreChange || (() => {});
         this.onGameOver = options.onGameOver || (() => {});
         this.onEat = options.onEat || (() => {});
+        this.onBomb = options.onBomb || (() => {});
         this.onStateChange = options.onStateChange || (() => {});
 
-        // 初始化画布尺寸
         this.resize();
     }
 
-    /**
-     * 调整画布大小
-     */
     resize() {
         const wrapper = this.canvas.parentElement;
         const maxW = Math.min(wrapper.clientWidth || 600, 600);
-        // 保持正方形或接近正方形
-        const maxH = Math.min(window.innerHeight * 0.5, maxW);
+        const availableH = window.innerHeight - 260;
+        const maxH = Math.min(Math.max(availableH, 200), maxW);
 
         this.cols = Math.floor(maxW / this.gridSize);
         this.rows = Math.floor(maxH / this.gridSize);
 
-        // 确保最小尺寸
         this.cols = Math.max(this.cols, 15);
-        this.rows = Math.max(this.rows, 15);
+        this.rows = Math.max(this.rows, 10);
 
         this.canvas.width = this.cols * this.gridSize;
         this.canvas.height = this.rows * this.gridSize;
@@ -102,25 +116,19 @@ export class SnakeGame {
         this.canvas.style.height = this.canvas.height + 'px';
     }
 
-    /**
-     * 设置难度
-     */
     setDifficulty(level) {
         this.difficulty = level;
     }
 
-    /**
-     * 获取当前速度（毫秒/步）
-     */
     getSpeed() {
         return SPEED_MAP[this.difficulty] || 150;
     }
 
-    /**
-     * 初始化/重置游戏
-     */
+    getBombCount() {
+        return BOMB_CONFIG.countByDifficulty[this.difficulty] || 2;
+    }
+
     reset() {
-        // 蛇初始位置（中间偏左）
         const startX = Math.floor(this.cols / 4);
         const startY = Math.floor(this.rows / 2);
         this.snake = [
@@ -132,14 +140,14 @@ export class SnakeGame {
         this.nextDirection = DIR.RIGHT;
         this.growing = 0;
         this.score = 0;
+        this.stepCount = 0;
         this.particles = [];
+        this.bombs = [];
         this.onScoreChange(this.score);
         this.spawnFood();
+        this.spawnBombs();
     }
 
-    /**
-     * 开始游戏
-     */
     start() {
         this.reset();
         this.state = 'playing';
@@ -149,9 +157,6 @@ export class SnakeGame {
         this.gameLoop(this.lastTime);
     }
 
-    /**
-     * 暂停/恢复
-     */
     togglePause() {
         if (this.state === 'playing') {
             this.state = 'paused';
@@ -169,9 +174,6 @@ export class SnakeGame {
         }
     }
 
-    /**
-     * 停止游戏循环
-     */
     stop() {
         if (this.animFrameId) {
             cancelAnimationFrame(this.animFrameId);
@@ -179,20 +181,20 @@ export class SnakeGame {
         }
     }
 
-    /**
-     * 设置方向
-     */
     setDirection(dir) {
-        // 防止180度转弯
         if (dir.x + this.direction.x === 0 && dir.y + this.direction.y === 0) return;
         this.nextDirection = dir;
     }
 
-    /**
-     * 生成食物
-     */
-    spawnFood() {
-        const occupied = new Set(this.snake.map(s => `${s.x},${s.y}`));
+    getOccupiedSet() {
+        const occupied = new Set();
+        this.snake.forEach(s => occupied.add(`${s.x},${s.y}`));
+        if (this.food) occupied.add(`${this.food.x},${this.food.y}`);
+        this.bombs.forEach(b => occupied.add(`${b.x},${b.y}`));
+        return occupied;
+    }
+
+    findFreePosition(occupied) {
         let attempts = 0;
         let pos;
         do {
@@ -202,27 +204,70 @@ export class SnakeGame {
             };
             attempts++;
         } while (occupied.has(`${pos.x},${pos.y}`) && attempts < 1000);
+        return pos;
+    }
 
-        this.food = pos;
+    spawnFood() {
+        const occupied = this.getOccupiedSet();
+        this.food = this.findFreePosition(occupied);
 
-        // 随机食物类型，稀有食物概率更低
         const rand = Math.random();
-        if (rand < 0.05) {
-            this.foodType = FOOD_TYPES[4]; // ⭐ 5%
-        } else if (rand < 0.15) {
-            this.foodType = FOOD_TYPES[3]; // 🍓 10%
-        } else if (rand < 0.30) {
-            this.foodType = FOOD_TYPES[2]; // 🍇 15%
-        } else if (rand < 0.55) {
-            this.foodType = FOOD_TYPES[1]; // 🍊 25%
+        if (rand < 0.03) {
+            this.foodType = FOOD_TYPES[9];
+        } else if (rand < 0.07) {
+            this.foodType = FOOD_TYPES[8];
+        } else if (rand < 0.12) {
+            this.foodType = FOOD_TYPES[7];
+        } else if (rand < 0.18) {
+            this.foodType = FOOD_TYPES[6];
+        } else if (rand < 0.26) {
+            this.foodType = FOOD_TYPES[5];
+        } else if (rand < 0.36) {
+            this.foodType = FOOD_TYPES[4];
+        } else if (rand < 0.48) {
+            this.foodType = FOOD_TYPES[3];
+        } else if (rand < 0.62) {
+            this.foodType = FOOD_TYPES[2];
+        } else if (rand < 0.80) {
+            this.foodType = FOOD_TYPES[1];
         } else {
-            this.foodType = FOOD_TYPES[0]; // 🍎 45%
+            this.foodType = FOOD_TYPES[0];
         }
     }
 
-    /**
-     * 游戏主循环
-     */
+    spawnBombs() {
+        this.bombs = [];
+        const count = this.getBombCount();
+        const occupied = this.getOccupiedSet();
+
+        for (let i = 0; i < count; i++) {
+            const pos = this.findFreePosition(occupied);
+            this.bombs.push({ x: pos.x, y: pos.y });
+            occupied.add(`${pos.x},${pos.y}`);
+        }
+    }
+
+    refreshBombs() {
+        this.bombs = [];
+        const count = this.getBombCount();
+        const occupied = this.getOccupiedSet();
+
+        for (let i = 0; i < count; i++) {
+            const pos = this.findFreePosition(occupied);
+            this.bombs.push({ x: pos.x, y: pos.y });
+            occupied.add(`${pos.x},${pos.y}`);
+        }
+    }
+
+    checkBombCollision(x, y) {
+        for (let i = 0; i < this.bombs.length; i++) {
+            if (this.bombs[i].x === x && this.bombs[i].y === y) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     gameLoop(timestamp) {
         if (this.state !== 'playing') return;
 
@@ -232,30 +277,24 @@ export class SnakeGame {
 
         const speed = this.getSpeed();
 
-        // 逻辑更新
         while (this.accumulator >= speed) {
             this.update();
             this.accumulator -= speed;
             if (this.state !== 'playing') return;
         }
 
-        // 渲染
         this.render();
-
-        // 更新粒子
         this.updateParticles();
 
-        // 食物动画相位
         this.foodAnimPhase += delta * 0.003;
+        this.bombAnimPhase += delta * 0.004;
 
         this.animFrameId = requestAnimationFrame((t) => this.gameLoop(t));
     }
 
-    /**
-     * 逻辑更新（每步）
-     */
     update() {
         this.direction = this.nextDirection;
+        this.stepCount++;
 
         const head = this.snake[0];
         const newHead = {
@@ -263,13 +302,11 @@ export class SnakeGame {
             y: head.y + this.direction.y
         };
 
-        // 碰墙检测
         if (newHead.x < 0 || newHead.x >= this.cols || newHead.y < 0 || newHead.y >= this.rows) {
             this.gameOver();
             return;
         }
 
-        // 碰自身检测
         for (let i = 0; i < this.snake.length; i++) {
             if (this.snake[i].x === newHead.x && this.snake[i].y === newHead.y) {
                 this.gameOver();
@@ -277,33 +314,47 @@ export class SnakeGame {
             }
         }
 
-        // 移动蛇
         this.snake.unshift(newHead);
 
-        // 吃食物检测
         if (this.food && newHead.x === this.food.x && newHead.y === this.food.y) {
             this.score += this.foodType.points;
             this.onScoreChange(this.score);
             this.onEat(this.food, this.foodType);
 
-            // 生成吃食物粒子
             this.spawnEatParticles(this.food.x, this.food.y, this.foodType.color);
-
-            // 蛇增长（不移除尾部）
             this.spawnFood();
         } else {
-            // 正常移动，移除尾部
             if (this.growing > 0) {
                 this.growing--;
             } else {
                 this.snake.pop();
             }
         }
+
+        const bombIdx = this.checkBombCollision(newHead.x, newHead.y);
+        if (bombIdx !== -1) {
+            const penalty = BOMB_CONFIG.penalty;
+            this.score = Math.max(0, this.score - penalty);
+            this.onScoreChange(this.score);
+
+            this.spawnBombParticles(newHead.x, newHead.y);
+            this.onBomb(penalty);
+
+            this.bombs.splice(bombIdx, 1);
+            const occupied = this.getOccupiedSet();
+            const newPos = this.findFreePosition(occupied);
+            this.bombs.push({ x: newPos.x, y: newPos.y });
+
+            if (this.snake.length > 3) {
+                this.snake.pop();
+            }
+        }
+
+        if (this.stepCount % BOMB_CONFIG.refreshInterval === 0) {
+            this.refreshBombs();
+        }
     }
 
-    /**
-     * 游戏结束
-     */
     gameOver() {
         this.state = 'gameover';
         this.stop();
@@ -316,14 +367,9 @@ export class SnakeGame {
 
         this.onGameOver(this.score);
         this.onStateChange(this.state);
-
-        // 最后渲染一帧（显示碰撞状态）
         this.render();
     }
 
-    /**
-     * 生成吃食物粒子特效
-     */
     spawnEatParticles(gx, gy, color) {
         const cx = (gx + 0.5) * this.gridSize;
         const cy = (gy + 0.5) * this.gridSize;
@@ -331,8 +377,7 @@ export class SnakeGame {
             const angle = (Math.PI * 2 * i) / 12 + Math.random() * 0.3;
             const speed = 1.5 + Math.random() * 3;
             this.particles.push({
-                x: cx,
-                y: cy,
+                x: cx, y: cy,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: 1,
@@ -343,9 +388,25 @@ export class SnakeGame {
         }
     }
 
-    /**
-     * 更新粒子
-     */
+    spawnBombParticles(gx, gy) {
+        const cx = (gx + 0.5) * this.gridSize;
+        const cy = (gy + 0.5) * this.gridSize;
+        const colors = ['#ff4757', '#ff6348', '#ffa502', '#ff3838', '#ff9f1a'];
+        for (let i = 0; i < 18; i++) {
+            const angle = (Math.PI * 2 * i) / 18 + Math.random() * 0.4;
+            const speed = 2 + Math.random() * 4;
+            this.particles.push({
+                x: cx, y: cy,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1,
+                decay: 0.015 + Math.random() * 0.02,
+                size: 4 + Math.random() * 6,
+                color: colors[Math.floor(Math.random() * colors.length)]
+            });
+        }
+    }
+
     updateParticles() {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
@@ -360,38 +421,23 @@ export class SnakeGame {
         }
     }
 
-    /**
-     * 渲染
-     */
     render() {
         const ctx = this.ctx;
-        const gs = this.gridSize;
         const w = this.canvas.width;
         const h = this.canvas.height;
 
-        // 清空画布
         ctx.fillStyle = '#0a0a1a';
         ctx.fillRect(0, 0, w, h);
 
-        // 绘制网格
         this.drawGrid();
-
-        // 绘制食物
+        this.drawBombWarningZones();
+        this.drawBombs();
         this.drawFood();
-
-        // 绘制蛇
         this.drawSnake();
-
-        // 绘制粒子
         this.drawParticles();
-
-        // 绘制边框
         this.drawBorder();
     }
 
-    /**
-     * 绘制网格背景
-     */
     drawGrid() {
         const ctx = this.ctx;
         const gs = this.gridSize;
@@ -412,9 +458,6 @@ export class SnakeGame {
         }
     }
 
-    /**
-     * 绘制蛇
-     */
     drawSnake() {
         const ctx = this.ctx;
         const gs = this.gridSize;
@@ -428,11 +471,9 @@ export class SnakeGame {
             const pad = 1;
 
             if (i === 0) {
-                // 蛇头 - 更大更圆
                 const headSize = gs - pad * 2;
                 const radius = headSize * 0.4;
 
-                // 发光效果
                 ctx.shadowColor = '#43e97b';
                 ctx.shadowBlur = 12;
 
@@ -441,11 +482,8 @@ export class SnakeGame {
                 ctx.fill();
 
                 ctx.shadowBlur = 0;
-
-                // 眼睛
                 this.drawEyes(px, py, gs);
             } else {
-                // 蛇身 - 渐变色
                 const green = Math.floor(180 + 53 * ratio);
                 const blue = Math.floor(80 + 43 * ratio);
                 ctx.fillStyle = `rgb(${Math.floor(30 * ratio)}, ${green}, ${blue})`;
@@ -457,7 +495,6 @@ export class SnakeGame {
                 this.roundRect(ctx, px + bodyPad, py + bodyPad, bodySize, bodySize, radius);
                 ctx.fill();
 
-                // 身体花纹（每隔一段）
                 if (i % 3 === 0) {
                     ctx.fillStyle = `rgba(255, 255, 255, ${0.1 * ratio})`;
                     const dotSize = bodySize * 0.3;
@@ -469,59 +506,41 @@ export class SnakeGame {
         }
     }
 
-    /**
-     * 绘制蛇眼睛
-     */
     drawEyes(px, py, gs) {
         const ctx = this.ctx;
         const cx = px + gs / 2;
         const cy = py + gs / 2;
 
-        // 根据方向确定眼睛位置
-        let eyeOffsetX = 0, eyeOffsetY = 0;
         const eyeSpread = gs * 0.22;
         const eyeForward = gs * 0.15;
 
         if (this.direction === DIR.RIGHT) {
-            eyeOffsetX = eyeForward;
-            // 两只眼睛上下分布
-            this.drawSingleEye(ctx, cx + eyeOffsetX, cy - eyeSpread, gs);
-            this.drawSingleEye(ctx, cx + eyeOffsetX, cy + eyeSpread, gs);
+            this.drawSingleEye(ctx, cx + eyeForward, cy - eyeSpread, gs);
+            this.drawSingleEye(ctx, cx + eyeForward, cy + eyeSpread, gs);
         } else if (this.direction === DIR.LEFT) {
-            eyeOffsetX = -eyeForward;
-            this.drawSingleEye(ctx, cx + eyeOffsetX, cy - eyeSpread, gs);
-            this.drawSingleEye(ctx, cx + eyeOffsetX, cy + eyeSpread, gs);
+            this.drawSingleEye(ctx, cx - eyeForward, cy - eyeSpread, gs);
+            this.drawSingleEye(ctx, cx - eyeForward, cy + eyeSpread, gs);
         } else if (this.direction === DIR.UP) {
-            eyeOffsetY = -eyeForward;
-            this.drawSingleEye(ctx, cx - eyeSpread, cy + eyeOffsetY, gs);
-            this.drawSingleEye(ctx, cx + eyeSpread, cy + eyeOffsetY, gs);
+            this.drawSingleEye(ctx, cx - eyeSpread, cy - eyeForward, gs);
+            this.drawSingleEye(ctx, cx + eyeSpread, cy - eyeForward, gs);
         } else {
-            eyeOffsetY = eyeForward;
-            this.drawSingleEye(ctx, cx - eyeSpread, cy + eyeOffsetY, gs);
-            this.drawSingleEye(ctx, cx + eyeSpread, cy + eyeOffsetY, gs);
+            this.drawSingleEye(ctx, cx - eyeSpread, cy + eyeForward, gs);
+            this.drawSingleEye(ctx, cx + eyeSpread, cy + eyeForward, gs);
         }
     }
 
-    /**
-     * 绘制单只眼睛
-     */
     drawSingleEye(ctx, ex, ey, gs) {
-        // 白色眼球
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(ex, ey, gs * 0.13, 0, Math.PI * 2);
         ctx.fill();
 
-        // 黑色瞳孔
         ctx.fillStyle = '#1a1a2e';
         ctx.beginPath();
         ctx.arc(ex, ey, gs * 0.06, 0, Math.PI * 2);
         ctx.fill();
     }
 
-    /**
-     * 绘制食物
-     */
     drawFood() {
         if (!this.food) return;
         const ctx = this.ctx;
@@ -529,16 +548,12 @@ export class SnakeGame {
         const fx = this.food.x * gs;
         const fy = this.food.y * gs;
 
-        // 食物呼吸动画
         const breathe = Math.sin(this.foodAnimPhase) * 0.1 + 1;
         const size = gs * breathe;
-        const offset = (gs - size) / 2;
 
-        // 发光效果
         ctx.shadowColor = this.foodType.color;
         ctx.shadowBlur = 15 + Math.sin(this.foodAnimPhase * 2) * 5;
 
-        // 绘制食物背景圆
         ctx.fillStyle = this.foodType.color + '33';
         ctx.beginPath();
         ctx.arc(fx + gs / 2, fy + gs / 2, size / 2 + 2, 0, Math.PI * 2);
@@ -546,21 +561,62 @@ export class SnakeGame {
 
         ctx.shadowBlur = 0;
 
-        // 绘制emoji食物
         ctx.font = `${Math.floor(size * 0.8)}px serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.foodType.emoji, fx + gs / 2, fy + gs / 2 + 1);
 
-        // 分值提示
         ctx.font = `bold ${Math.floor(gs * 0.35)}px 'Noto Sans SC', sans-serif`;
         ctx.fillStyle = this.foodType.color;
         ctx.fillText(`+${this.foodType.points}`, fx + gs / 2, fy - 4);
     }
 
-    /**
-     * 绘制粒子
-     */
+    drawBombWarningZones() {
+        const ctx = this.ctx;
+        const gs = this.gridSize;
+        const pulse = Math.sin(this.bombAnimPhase * 2) * 0.3 + 0.5;
+
+        for (const bomb of this.bombs) {
+            const bx = bomb.x * gs;
+            const by = bomb.y * gs;
+
+            ctx.fillStyle = `rgba(255, 71, 87, ${0.06 * pulse})`;
+            ctx.fillRect(bx - gs * 0.2, by - gs * 0.2, gs * 1.4, gs * 1.4);
+        }
+    }
+
+    drawBombs() {
+        const ctx = this.ctx;
+        const gs = this.gridSize;
+
+        for (const bomb of this.bombs) {
+            const bx = bomb.x * gs;
+            const by = bomb.y * gs;
+
+            const shake = Math.sin(this.bombAnimPhase * 3 + bomb.x * 0.5) * 1.5;
+            const wobble = Math.cos(this.bombAnimPhase * 2.5 + bomb.y * 0.7) * 1;
+
+            const glowIntensity = 8 + Math.sin(this.bombAnimPhase * 4) * 4;
+            ctx.shadowColor = BOMB_CONFIG.color;
+            ctx.shadowBlur = glowIntensity;
+
+            ctx.font = `${Math.floor(gs * 0.85)}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(
+                BOMB_CONFIG.emoji,
+                bx + gs / 2 + shake,
+                by + gs / 2 + wobble + 1
+            );
+
+            ctx.shadowBlur = 0;
+
+            ctx.font = `bold ${Math.floor(gs * 0.32)}px 'Noto Sans SC', sans-serif`;
+            ctx.fillStyle = '#ff4757';
+            ctx.fillText(`-${BOMB_CONFIG.penalty}`, bx + gs / 2 + shake, by - 3 + wobble);
+        }
+    }
+
     drawParticles() {
         const ctx = this.ctx;
         for (const p of this.particles) {
@@ -573,9 +629,6 @@ export class SnakeGame {
         ctx.globalAlpha = 1;
     }
 
-    /**
-     * 绘制边框
-     */
     drawBorder() {
         const ctx = this.ctx;
         ctx.strokeStyle = 'rgba(67, 233, 123, 0.2)';
@@ -583,9 +636,6 @@ export class SnakeGame {
         ctx.strokeRect(1, 1, this.canvas.width - 2, this.canvas.height - 2);
     }
 
-    /**
-     * 圆角矩形辅助
-     */
     roundRect(ctx, x, y, w, h, r) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -600,13 +650,9 @@ export class SnakeGame {
         ctx.closePath();
     }
 
-    /**
-     * 获取难度标签
-     */
     getDifficultyLabel() {
         return SPEED_LABEL[this.difficulty] || '简单';
     }
 }
 
-// 导出方向常量供外部使用
 export { DIR };
